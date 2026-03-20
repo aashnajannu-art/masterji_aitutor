@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Set the browser tab title for the tutor page. -->
+    <title>Python Tutor</title>
+    <!-- Load CodeMirror's base stylesheet so the editor renders correctly. -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <!-- Load the light editor theme used for the Python workspace. -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css">
+    <style>
+        /* Apply border-box sizing so spacing calculations stay predictable. */
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Style the overall page background and default text. */
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(78, 145, 255, 0.18), transparent 26%),
+                linear-gradient(180deg, #eef4ff 0%, #f8fbff 48%, #f2f7ef 100%);
+            color: #102047;
+        }
+
+        /* Place the assignments sidebar and workspace next to each other. */
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Style the left sidebar that lists the current assignments. */
+        .sidebar {
+            width: 320px;
+            background:
+                linear-gradient(180deg, rgba(13, 28, 61, 0.96), rgba(21, 42, 91, 0.98)),
+                linear-gradient(135deg, #0f1c3d, #152a5b);
+            color: #f5f8ff;
+            padding: 24px 20px 28px;
+            border-right: 1px solid rgba(213, 221, 240, 0.65);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            position: relative;
+        }
+
+        .sidebar::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(142, 187, 255, 0.18), transparent 30%);
+            pointer-events: none;
+        }
+
+        .sidebar-header {
+            display: grid;
+            gap: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Style the sidebar heading. */
+        .sidebar h2 {
+            margin-top: 0;
+            margin-bottom: 0;
+            font-size: 22px;
+            letter-spacing: 0.01em;
+        }
+
+        .sidebar-copy {
+            margin: 0;
+            color: #c7d6ff;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .progress-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.09);
+            border: 1px solid rgba(197, 216, 255, 0.18);
+            color: #ecf3ff;
+            font-size: 13px;
+        }
+
+        /* Remove default list styling and stack assignment cards vertically. */
+        .assignment-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Style each assignment item like a card. */
+        .assignment-list li {
+            background: linear-gradient(180deg, rgba(36, 62, 123, 0.92), rgba(27, 47, 98, 0.96));
+            border: 1px solid rgba(90, 126, 211, 0.48);
+            border-radius: 16px;
+            padding: 14px 14px 13px;
+            box-shadow: 0 12px 24px rgba(5, 14, 35, 0.22);
+        }
+
+        /* Let the workspace fill the rest of the page. */
+        .workspace {
+            flex: 1;
+            padding: 26px 26px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Keep the top navigation actions aligned and easy to wire up later. */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 20px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(208, 220, 244, 0.95);
+            box-shadow: 0 18px 35px rgba(70, 104, 166, 0.10);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Group page-level action buttons together. */
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Make the main product title larger than the rest of the text. */
+        .title {
+            font-size: 34px;
+            margin: 0;
+            line-height: 1;
+        }
+
+        /* Style regular headings inside the workspace. */
+        .workspace h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        /* Style supporting text under the workspace headings. */
+        .workspace p {
+            margin: 0;
+            color: #42527c;
+        }
+
+        .hero-panel {
+            display: grid;
+            gap: 14px;
+            padding: 22px;
+            border-radius: 24px;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(247, 251, 255, 0.96)),
+                #ffffff;
+            border: 1px solid rgba(211, 223, 246, 0.95);
+            box-shadow: 0 18px 36px rgba(94, 121, 171, 0.10);
+        }
+
+        .hero-copy {
+            display: grid;
+            gap: 10px;
+        }
+
+        .eyebrow {
+            margin: 0;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #4e74d0;
+        }
+
+        .hero-description {
+            font-size: 16px;
+            line-height: 1.6;
+            max-width: 58ch;
+        }
+
+        .lesson-banner {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, #f4f8ff, #edf4ff);
+            border: 1px solid #d9e5fb;
+        }
+
+        .lesson-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: #ffffff;
+            border: 1px solid #d6e0f6;
+            color: #24407b;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* Reuse this style for secondary action buttons that teammates can wire later. */
+        .ghost-button {
+            background: rgba(255, 255, 255, 0.95);
+            color: #102047;
+            border: 1px solid #c9d4ee;
+            border-radius: 999px;
+            padding: 10px 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 8px 18px rgba(110, 140, 196, 0.10);
+        }
+
+        /* Keep the PDF upload control and selected filename visually grouped. */
+        .upload-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(214, 223, 241, 0.95);
+        }
+
+        /* Style helper text shown next to the upload control. */
+        .upload-status {
+            color: #42527c;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Hide the native file input while keeping it available for later wiring. */
+        .hidden-input {
+            display: none;
+        }
+
+        /* Style the card that contains the editor and output terminal. */
+        .python-box {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(249, 251, 255, 0.98));
+            border: 1px solid #d5ddf0;
+            border-radius: 22px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            height: 100%;
+            box-shadow: 0 18px 36px rgba(92, 114, 160, 0.10);
+        }
+
+        .editor-header {
+            display: grid;
+            gap: 6px;
+        }
+
+        .section-heading {
+            margin: 0;
+            font-size: 20px;
+            color: #19356e;
+        }
+
+        .section-copy {
+            margin: 0;
+            color: #5b6d93;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Split the workspace into editor and tutor columns. */
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.9fr);
+            gap: 16px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Style the AI tutor placeholder card. */
+        .chatbot-panel {
+            background:
+                linear-gradient(180deg, rgba(255, 251, 239, 0.96), rgba(255, 247, 223, 0.98));
+            border: 1px solid #ead9a8;
+            border-radius: 22px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
+            box-shadow: 0 18px 36px rgba(171, 143, 77, 0.10);
+        }
+
+        /* Give the chatbot section heading a stronger visual hierarchy. */
+        .panel-title {
+            margin: 0;
+            font-size: 20px;
+            color: #47360f;
+        }
+
+        /* Style the placeholder chatbot transcript area. */
+        .chatbot-feed {
+            flex: 1;
+            min-height: 280px;
+            border-radius: 14px;
+            border: 1px solid #ead9a8;
+            background: rgba(255, 255, 255, 0.78);
+            padding: 14px;
+            color: #5d4d1c;
+            overflow: auto;
+            display: grid;
+            gap: 10px;
+        }
+
+        .chat-message {
+            padding: 12px 13px;
+            border-radius: 14px;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .chat-message.tutor {
+            background: #fff6d8;
+            border: 1px solid #f0d98d;
+        }
+
+        .chat-message.student {
+            background: #ffffff;
+            border: 1px solid #eadcb2;
+            justify-self: end;
+        }
+
+        /* Lay out the chatbot prompt input and send button. */
+        .chatbot-controls {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+        }
+
+        /* Style the chatbot text input. */
+        .chatbot-input {
+            border: 1px solid #d8c37d;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 14px;
+        }
+
+        /* Slightly brighten the lesson items to make the checkmarks feel intentional. */
+        .lesson-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        /* Style the lesson completion checkbox. */
+        .lesson-checkbox {
+            margin-top: 2px;
+            width: 18px;
+            height: 18px;
+            accent-color: #70d28a;
+            cursor: pointer;
+        }
+
+        /* Keep lesson text readable inside the sidebar cards. */
+        .lesson-text {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            line-height: 1.4;
+        }
+
+        /* Style the small hint text under each topic title. */
+        .lesson-subtext {
+            color: #c9d7ff;
+            font-size: 13px;
+        }
+
+        .lesson-checkbox:checked + .lesson-text strong {
+            text-decoration: line-through;
+            opacity: 0.75;
+        }
+
+        .lesson-checkbox:checked + .lesson-text .lesson-subtext {
+            opacity: 0.65;
+        }
+
+        /* Wrap the code editor in a rounded border container. */
+        .code-editor {
+            border: 1px solid #c9d4ee;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        /* Set the height and typography of the CodeMirror editor. */
+        .CodeMirror {
+            height: 260px;
+            font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            background: #f7f9ff;
+        }
+
+        /* Style the line number gutter on the left side of the editor. */
+        .CodeMirror-gutters {
+            background: #eef2ff;
+            border-right: 1px solid #d5ddf0;
+        }
+
+        /* Style the button that runs Python code. */
+        .run-button {
+            align-self: flex-start;
+            background: #2d63ff;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Show a visual disabled state while code is running. */
+        .run-button:disabled {
+            opacity: 0.7;
+            cursor: progress;
+        }
+
+        /* Style the terminal area that shows stdout and stderr. */
+        .terminal {
+            flex: 1;
+            min-height: 180px;
+            background: #0d152b;
+            color: #d8e2ff;
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid #263860;
+            font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            overflow: auto;
+        }
+
+        /* Stack the layout vertically on narrower screens. */
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+            }
+
+            /* Let the sidebar span the full width on mobile. */
+            .sidebar {
+                width: 100%;
+            }
+
+            /* Keep the workspace tall enough to feel usable on mobile. */
+            .workspace {
+                min-height: 70vh;
+            }
+
+            /* Collapse the two-column workspace into one column on smaller screens. */
+            .workspace-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* Stack top-bar content cleanly on smaller screens. */
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<!-- Hold the sidebar and workspace together in one responsive layout. -->
+<div class="container">
+    <!-- Show a static list of assignments on the left side. -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <p class="eyebrow">Lesson Path</p>
+            <h2>Assignments</h2>
+            <p class="sidebar-copy">Assigned work and PDF-generated topics appear here as focused, manageable lessons.</p>
+            <div class="progress-pill">3 topics ready to study</div>
+        </div>
+        <!-- Teammates can replace these starter items with PDF-generated topics later. -->
+        <ul class="assignment-list" id="lesson-list">
+            <li class="lesson-item">
+                <input class="lesson-checkbox" id="lesson-topic-1" type="checkbox">
+                <label class="lesson-text" for="lesson-topic-1">
+                    <strong>Topic 1: Variables and Input</strong>
+                    <span class="lesson-subtext">Starter placeholder topic. Replace with PDF-generated topics later.</span>
+                </label>
+            </li>
+            <li class="lesson-item">
+                <input class="lesson-checkbox" id="lesson-topic-2" type="checkbox">
+                <label class="lesson-text" for="lesson-topic-2">
+                    <strong>Topic 2: For Loops</strong>
+                    <span class="lesson-subtext">Dynamic topic slot for future PDF parsing output.</span>
+                </label>
+            </li>
+            <li class="lesson-item">
+                <input class="lesson-checkbox" id="lesson-topic-3" type="checkbox">
+                <label class="lesson-text" for="lesson-topic-3">
+                    <strong>Topic 3: Functions</strong>
+                    <span class="lesson-subtext">Mark completed topics with the checkboxes on the left.</span>
+                </label>
+            </li>
+        </ul>
+    </div>
+    <!-- Show the code editor and terminal on the right side. -->
+    <div class="workspace">
+        <!-- Keep global actions at the top so teammates can attach navigation later. -->
+        <div class="top-bar">
+            <h1 class="title">The MasterJi Tutor</h1>
+            <div class="top-actions">
+                <a class="ghost-button" href="#" id="back-home-button" data-home-target="saketh-homepage">Back to Home</a>
+                <label class="ghost-button" for="pdf-upload-input" id="upload-pdf-button">Upload PDF</label>
+                <input class="hidden-input" id="pdf-upload-input" type="file" accept=".pdf">
+                <button class="ghost-button" id="ai-chatbot-button" type="button">AI Chatbot</button>
+            </div>
+        </div>
+        <section class="hero-panel">
+            <div class="hero-copy">
+                <p class="eyebrow">Interactive Python Learning</p>
+                <h1>Python Workspace</h1>
+                <p class="hero-description">Students can move through assigned lessons or topics generated from uploaded textbooks, practice directly in the editor, and get just-in-time help from the integrated AI tutor.</p>
+                <div class="lesson-banner">
+                    <span class="lesson-badge">Current Lesson: For Loops</span>
+                </div>
+            </div>
+        </section>
+        <!-- Keep upload status visible so teammates have a simple target to update later. -->
+        <div class="upload-row">
+            <span class="upload-status" id="pdf-upload-status">No PDF uploaded yet. Topic generation will appear in the lesson list on the left.</span>
+            <span class="upload-status">Each textbook can produce a different number of lesson topics.</span>
+        </div>
+        <!-- Split the workspace into a coding area and a future AI tutor panel. -->
+        <div class="workspace-grid">
+            <!-- Group the code editor and output viewer into one card. -->
+            <div class="python-box">
+                <div class="editor-header">
+                    <h2 class="section-heading">Practice Editor</h2>
+                    <p class="section-copy">Use this space to solve the current lesson, test ideas quickly, and iterate with the tutor beside you.</p>
+                </div>
+                <!-- This textarea becomes a CodeMirror editor after the page loads. -->
+                <div class="code-editor">
+                    <textarea id="python-code" placeholder="# Start coding here
+for i in range(1, 6):
+    print('Count:', i)"></textarea>
+                </div>
+                <!-- Clicking this button sends the code to Django for execution. -->
+                <button class="run-button" id="run-button" type="button">Run Code</button>
+                <!-- Show program output and errors here. -->
+                <pre class="terminal" id="terminal-output">Terminal output will appear here.</pre>
+            </div>
+            <!-- This is a visual-only AI tutor panel for future chatbot integration. -->
+            <aside class="chatbot-panel" id="chatbot-panel">
+                <h2 class="panel-title">AI Tutor</h2>
+                <p class="section-copy">A guided support space for explanations, examples, and practice prompts when a student gets stuck.</p>
+                <div class="chatbot-feed" id="chatbot-feed">
+                    <div class="chat-message tutor">Ask for a concept explanation, a worked example, or a few practice questions related to the current lesson.</div>
+                    <div class="chat-message student">How do I know when to use <code>range()</code> in a for loop?</div>
+                </div>
+                <div class="chatbot-controls">
+                    <input class="chatbot-input" id="chatbot-input" type="text" placeholder="Ask the AI tutor about the current lesson..." aria-label="AI tutor input">
+                    <button class="ghost-button" id="chatbot-send-button" type="button">Send</button>
+                </div>
+            </aside>
+        </div>
+    </div>
+</div>
+<!-- Load the core CodeMirror editor library. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<!-- Load Python syntax support for CodeMirror. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script>
+    // Find the textarea that will become the code editor.
+    const codeInput = document.getElementById("python-code");
+    // Only continue if the editor textarea exists on the page.
+    if (codeInput) {
+        // Find the button used to run code.
+        const runButton = document.getElementById("run-button");
+        // Find the terminal area used to show results.
+        const terminalOutput = document.getElementById("terminal-output");
+        // Turn the textarea into a richer Python editor.
+        const editor = CodeMirror.fromTextArea(codeInput, {
+            // Show line numbers along the left edge.
+            lineNumbers: true,
+            // Highlight the text as Python code.
+            mode: "python",
+            // Use the light Eclipse theme.
+            theme: "eclipse",
+            // Indent blocks by four spaces.
+            indentUnit: 4,
+            // Make the Tab key behave like four spaces.
+            tabSize: 4,
+            // Allow tabs when indentation is inserted.
+            indentWithTabs: true,
+            // Wrap long lines instead of forcing sideways scrolling.
+            lineWrapping: true,
+            // Let CodeMirror automatically indent where it can.
+            smartIndent: true,
+            // Re-indent when Python punctuation suggests it.
+            electricChars: true
+        });
+
+        // Customize the Enter key to add one extra indent after lines ending in a colon.
+        editor.setOption("extraKeys", {
+            "Enter": (cm) => {
+                // Read the full current line where the cursor is.
+                const line = cm.getLine(cm.getCursor().line);
+                // Keep the existing indentation from the current line.
+                const baseIndent = (line.match(/^\s*/) || [""])[0];
+                // Detect whether the current line opens a Python block.
+                const needsIndent = line.trim().endsWith(":");
+                // Read the configured indentation size from CodeMirror.
+                const indentUnit = cm.getOption("indentUnit");
+                // Read whether the editor should indent with tabs.
+                const indentWithTabs = cm.getOption("indentWithTabs");
+                // Add one more indent level only when the line ends with a colon.
+                const extraIndent = needsIndent
+                    ? (indentWithTabs ? "\t" : " ".repeat(indentUnit))
+                    : "";
+                // Insert a new line with the right indentation.
+                cm.replaceSelection("\n" + baseIndent + extraIndent, "end");
+            }
+        });
+
+        // Refresh the editor after creation so CodeMirror measures itself correctly.
+        editor.refresh();
+
+        // Run this function whenever the user clicks the Run Code button.
+        runButton.addEventListener("click", async () => {
+            // Read the latest code from the CodeMirror editor.
+            const code = editor.getValue();
+            // Prevent duplicate clicks while the code is running.
+            runButton.disabled = true;
+            // Show temporary button text while execution is happening.
+            runButton.textContent = "Running...";
+            // Tell the user that the request is in progress.
+            terminalOutput.textContent = "Running code...";
+
+            // Send the code to Django and wait for the JSON response.
+            try {
+                const response = await fetch("/run-code/", {
+                    // Use POST because we are sending code to the server.
+                    method: "POST",
+                    // Tell Django that the body contains JSON.
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    // Serialize the current code into JSON.
+                    body: JSON.stringify({ code })
+                });
+
+                // Parse the JSON response body from the server.
+                const data = await response.json();
+
+                // Show a backend error immediately if the request was rejected.
+                if (!response.ok) {
+                    terminalOutput.textContent = data.error || "Something went wrong.";
+                    return;
+                }
+
+                // Prefix stdout so students can tell normal output apart from errors.
+                const stdout = data.stdout ? `stdout:\n${data.stdout}` : "";
+                // Prefix stderr so students can spot exceptions quickly.
+                const stderr = data.stderr ? `stderr:\n${data.stderr}` : "";
+                // Join stdout and stderr into one terminal string.
+                const rendered = [stdout, stderr].filter(Boolean).join("\n\n");
+                // Show the output, or a fallback if the program printed nothing.
+                terminalOutput.textContent = rendered || "Program finished with no output.";
+            // Show a generic message if the network request itself fails.
+            } catch (error) {
+                terminalOutput.textContent = "Request failed. Please try again.";
+            // Restore the button state after the request finishes.
+            } finally {
+                runButton.disabled = false;
+                runButton.textContent = "Run Code";
+            }
+        });
+    }
+</script>
+</body>
+</html>

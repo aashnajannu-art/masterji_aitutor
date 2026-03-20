@@ -1,0 +1,10 @@
+.DS_Store
+db.sqlite3
+__pycache__/
+*.pyc
+.venv/
+venv/
+student_dashboard/venv/
+student_dashboard/__pycache__/
+dashboard/__pycache__/
+masterji_aitutor/
