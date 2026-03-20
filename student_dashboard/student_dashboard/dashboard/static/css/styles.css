@@ -1,0 +1,53 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.header {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 0;
+    text-align: center;
+}
+
+.sidebar {
+    height: 100%;
+    width: 200px;
+    position: fixed;
+    top: 50px; /* Below the header */
+    left: 0;
+    background-color: #f4f4f4;
+    padding: 15px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.workspace {
+    margin-left: 220px; /* Space for the sidebar */
+    padding: 20px;
+}
+
+.xp-bar {
+    height: 30px;
+    background-color: #2196F3;
+    width: 100%;
+    text-align: center;
+    line-height: 30px;
+    color: white;
+}
+
+.assignment {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: #e7e7e7;
+    border-radius: 5px;
+}
+
+.python-workspace {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    height: 400px; /* Adjust as needed */
+    background-color: #fff;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
