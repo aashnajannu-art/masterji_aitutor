@@ -7,6 +7,7 @@ An intelligent tutoring platform designed to guide students through coding with 
 - [Overview](#overview)
 - [Features](#features)
 - [User Roles](#user-roles)
+- [Branch Workflow](#branch-workflow)
 
 
 # Overview
@@ -67,3 +68,27 @@ Dashboard
 Interactive Learning
 - AI generated teacher avatar
 - Hints instead of full answers
+
+# Branch Workflow
+To keep team work predictable, use the branches this way:
+
+- `frontend`: active UI branch for the website interface and client-side work.
+- `backend`: backend endpoints, database work, and Django server logic.
+- `RAG`: retrieval, textbook parsing, topic extraction, and lesson generation experiments.
+- `API-integration`: external API wiring and service integration work.
+- `dev`: shared integration branch when features from the team are ready to test together.
+- `main`: stable branch for the cleanest merged version of the project.
+
+Current recommendation:
+
+- Build day-to-day UI work on `frontend`.
+- Merge feature work into `dev` for team testing.
+- Merge `dev` into `main` only when the combined app is stable.
+- Avoid committing new feature work directly to `main`.
+
+Suggested branch naming for personal work:
+
+- `frontend/<name>-<task>`
+- `backend/<name>-<task>`
+- `rag/<name>-<task>`
+- `api/<name>-<task>`
